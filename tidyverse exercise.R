@@ -52,9 +52,43 @@ iris %>% mutate(Species = toupper(Species)) #changed lower case to upper case
 iris %>% group_by(Species) %>% 
   summarise(mean_petal_length = mean(Petal.Length), sd_petal_length = sd (Petal.Length)) 
 
+#sorting by a variable from small to large
+iris %>% arrange(Petal.Length)
 
+#sorting by a variable from large to small
+iris %>% arrange(desc(Petal.Length))
+
+#sorting by a variable for each species and slice these 
+iris %>% group_by(Species) %>% arrange(Petal.Length) %>% slice(1:3)
+
+#nesting: all data for all the species making it into a tibble
+iris %>%  group_by(Species) %>% nest()
+
+#linear regression model with the nested data
+#map: part of tidyverse, taking each element of each column at its turn
+iris %>%  group_by(Species) %>% nest() %>% 
+  mutate(mod = map(data, ~lm(Sepal.Length ~ Sepal.Width, data = .))) %>% 
+  mutate(coef = map(mod, broom::tidy)) %>% 
+
+#we unnest the tibbles because we want to see what the model shows 
+  unnest(coef)
 
 
 ####Reshaping data####
+iris %>% 
+  rownames_to_column() %>% 
+  gather(key = variable, value = measurement, -Species, -rowname) %>% 
+  group_by(Species, variable) %>% 
+  summarise(mean = mean(measurement)) 
+
+#plotting the data
+iris %>% 
+  rownames_to_column() %>% 
+  gather(key = variable, value = measurement, -Species, -rowname) %>% 
+  group_by(Species, variable) %>% 
+  ggplot(aes(x = variable, y = measurement, fill = Species)) + geom_violin()
+
+
+
 
 
