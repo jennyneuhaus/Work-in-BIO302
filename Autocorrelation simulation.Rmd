@@ -1,0 +1,148 @@
+---
+title: "Exercise"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library (tidyverse)
+library (broom)
+#install.packages('lmtest')
+library(lmtest)
+library(nlme)
+
+```
+
+# Spatial and temporal structure
+
+1. Simulate a 100-observation autocorrelated timeseries with arima.sim, with a first order autoregressive coefficient of 0.5. Also make a time vector of 1:100
+
+2. Plot the data
+
+```{r}
+simulation <- arima.sim (n = 100, list(ar = 0.5))
+simulation
+plot(simulation)
+```
+
+3. Regress the timeseries against time with an OLS model. Does the model appear to be statistically significant?
+
+How to: x: time series; y: the arima.sim model
+Answer: The model does not appear to be statistically significant (p = 0.1247)
+
+4a. Plot the model diagnostics
+4b. Include an autocorrelation function and partial autocorrelation function of the residuals
+
+```{r first, echo = TRUE}
+set.seed(42)
+dat <- tibble(
+  x = 1:100,
+  y = arima.sim (n = 100, list(ar = 0.5)))
+
+mod <- lm(y ~ x, data = dat)
+anova(mod)
+summary(mod)
+
+par(mfrow = c(2,2))
+plot(mod)
+
+acf(resid(mod))
+pacf(resid(mod))
+```
+
+5. Use the Durbin-Watson test to test the residuals for autocorrelation
+
+Result: DW = 0.97573: positive autocorrelation
+
+```{r}
+dwtest(mod)
+```
+
+
+6. Fit a gls with an appropriate correlation structure. Is this a better model? How have the p-value and effect size changed?
+
+Answer: p-value increased to 0.6199; effect size changed slightly: from 0.006465 to 0.00220386
+
+a. GLS with corAR1
+
+```{r}
+year <- time(simulation)
+fit.gls <- gls(simulation ~ year, correlation = corAR1())
+summary(fit.gls)
+```
+
+b. GLS without including correlation 
+
+```{r}
+year <- time(simulation)
+fit.gls2 <- gls(simulation ~ year)
+summary(fit.gls2)
+```
+
+c.Running an anova of both to compare 
+
+See that the AIC of the gls with correlation included is lower = better model
+```{r}
+anova(fit.gls, fit.gls2)
+```
+
+7. Repeat the above 1000 times and find how autocorrelation affects the distribution of the p-value and the effect size.
+
+```{r}
+
+#Repeat all steps with time series 1000; simulation 2
+
+simulation2 <- arima.sim (n = 1000, list(ar = 0.5))
+simulation2
+plot(simulation2)
+
+#dat2, mod2
+
+set.seed(42)
+dat2 <- tibble(
+  x = 1:1000,
+  y = arima.sim (n = 1000, list(ar = 0.5)))
+
+mod2 <- lm(y ~ x, data = dat2)
+anova(mod2)
+summary(mod2)
+
+par(mfrow = c(2,2))
+plot(mod2)
+
+acf(resid(mod2))
+pacf(resid(mod2))
+
+dwtest(mod2)
+
+#Gives DM: 1.0191; positive autocorrelation 
+
+#GLS with correlation; gls3
+#GLS without correlation; gls4
+
+year <- time(simulation2)
+fit.gls3 <- gls(simulation2 ~ year, correlation = corAR1())
+summary(fit.gls3)
+
+year <- time(simulation2)
+fit.gls4 <- gls(simulation2 ~ year)
+summary(fit.gls4)
+
+anova (fit.gls3, fit.gls4)
+```
+
+
+Real data
+The built-in dataset LakeHuron has annual lake level data from 1885 to 1972 Load the data with the command data(LakeHuron)
+
+Plot the data.
+
+Regress the LakeHuron lake level against year using a linear model. Is there a significant trend?
+
+Plot the autocorrelation and partial autocorrelation functions for the residuals from this regression. Interpret them.
+
+Fit an autoregressive models to the residuals. Compare the results with your interpretation of the PACF plot.
+
+Fit a gls model using a corAR1 correlation structure. Test if the correlation structure is necessary. Is the trend significant?
+
+Fit a gls model using a corARMA correlation structure with two AR terms. Is this model an improvement?
