@@ -1,0 +1,132 @@
+---
+title: "Mixed Effect Models"
+author: "Richard J. Telford"
+date: "June 1, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(nlme)
+```
+
+## R Markdown
+Exercises 
+
+1) Import data LME.csv
+
+id gives the group id, y is the response, ab and AB are predictors
+
+```{r}
+mixed <- read.csv ("LME.csv")
+mixed <- mixed %>%  mutate (AB = factor(AB), ab = factor (ab))
+mixed
+```
+
+2) What is a random effect?
+
+Effect that is particular to an observation (residuals) or group of observations
+
+Examples (note that this is dependent on the exp. design): Individual with repeated measurements; litterzise 
+
+
+3) What is a fixed effect?
+
+Effect that is shared by all observations
+
+Examples (dependent on exp. design): Nutrient added or not; male or female
+
+
+4) Fit an appropriate a model with y and AB
+
+```{r}
+fit.lme <- lme (y~AB, random=~+1|id, data = mixed)
+anova (fit.lme, type="m")
+summary(fit.lme)
+
+```
+
+
+5) Interpret the results
+
+The findings are not significant (p > 0.05): the outer variable AB cannot predict y
+
+
+6) Fit an appropriate a model with y and ab
+
+```{r}
+fit.lme2 <- lme (y~ab, random=~+1|id, data = mixed)
+anova (fit.lme2, type="m")
+summary(fit.lme2)
+
+```
+
+
+7) Interpret the results
+
+The findings are significant (p < 0.05): The inner variable ab can predict y 
+
+
+8) Include both AB and ab as predictors 
+
+
+```{r}
+fit.lme3 <-lme(y ~ ab + AB,random=~+1|id, data = mixed)
+anova(fit.lme3 ,type="m")
+summary(fit.lme3)
+
+```
+
+
+9) What is the expected mean for the different levels of AB and ab?
+
+```{r}
+mixed %>%  ggplot(aes(x = ab, y = y, fill = AB)) + geom_boxplot()
+mixed %>%  ggplot(aes(x = AB, y = y)) + geom_boxplot()
+mixed %>%  ggplot(aes(x = ab, y = y)) + geom_boxplot()
+```
+
+
+10) Use a linear model with AB and compare the results to question 4
+
+```{r}
+fit.lm <- lm (y~AB, data = mixed)
+anova (fit.lm)
+summary(fit.lm)
+```
+
+Here you get a very significant result compared to the lme. This happens when you fit the wrong model 
+
+11) Use a linear model with ab and compare the results to question 6
+
+```{r}
+fit.lm2 <- lm (y~ab, data = mixed)
+anova (fit.lm2)
+summary(fit.lm2)
+```
+
+
+
+12) Import data length.csv   
+id is the individual id, day is the predictor, length is the response
+
+```{r}
+length <- read_csv ("length.csv")
+```
+
+
+13) Find the best model to explain the data
+
+14) Use a simulation to test the performance of mixed effect models.  
+
+Simulate 10 groups of observations, 5 for each treatment AB, each with 10 individuals. There should be a group error from a normal distribution and an individual error from a normal distribution, and the effect of the predictor. Chose an effect size, individual error and group error that you might expect for your data.
+
+Test how changing the number of individuals within in each group and the number of groups (keeping the total number of observations constant) changes the power of the analysis (the probability of detecting the response).
+
+15) Repeat for an inner variable ab which varies within each group.
+
+16) Consider the implications for experimental design.
+
+
+
