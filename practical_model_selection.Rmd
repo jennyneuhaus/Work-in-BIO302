@@ -1,0 +1,128 @@
+---
+title: "Model selection"
+author: "Richard J. Telford"
+date: "June 8, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(AICcmodavg)
+library(olsrr)
+library(MASS)
+library(broom)
+```
+
+Exercise Diagnostics
+
+4. Import bird1.csv
+
+```{r}
+bird <- read_csv("bird1.csv")
+bird
+```
+
+5. Fit a linear model for weight as a function of temp
+
+```{r}
+fit_lm <- lm(weight ~ temp, data = bird)
+anova (fit_lm)
+summary(fit_lm)
+```
+
+6. Examine the diagnostics graphs. Do they indicate that any action needs to be taken?
+
+```{r}
+par(mfrow = c(2,2))
+plot(fit_lm)
+```
+
+7. Fit a model that includes a quadratic term for temp 
+
+```{r}
+fit_lm2 <- lm(weight ~ temp + I(temp^2), bird)
+anova (fit_lm2)
+summary(fit_lm2)
+```
+
+8. Compare the diagnostics plots with those from the previous model. Comment on any changes.
+
+The residuals vs. fitted changed in a way that they are better fitted 
+
+```{r}
+par(mfrow = c(2,2))
+plot(fit_lm2)
+```
+
+9. Extract the AIC from both models (hint use function AIC). Which is the better model?
+
+```{r}
+mods <- list ()
+mods$m1 <- lm(weight ~ temp, data = bird)
+mods$m2 <- lm(weight ~ temp + I(temp^2), data = bird)
+sapply(mods, AIC)
+```
+
+
+10. Calculate the deltaAIC for each model
+
+Δ AIC - difference between the best AIC and AIC of the other models. 
+Best model has a ΔAIC of zero, highest values for worst models
+
+```{r}
+aictab(mods)
+```
+
+11. Calculate the AIC weights for each model. Interpret these weights.
+
+There is a probability of 84% that model 2 is better than model 1 
+
+
+12. With the built-in data set `swiss` (use `data(swiss)`), make an ordinary least squares model between Fertility and all other variables. Find the VIF (Variance Inflation Factor) of each predictor. 
+
+Ordinary least squares = linear model (lm)
+
+VIF: Measure of how much variance of the regression coefficient is “inflated” by correlation among the predictor variables
+
+A VIF of 1 means that there is no correlation among the kth predictor and the remaining predictor variables, and hence the variance of β_k is not inflated at all. 
+
+The general rule of thumb is that VIFs exceeding 4 warrant further investigation, while VIFs exceeding 10 are signs of serious multicollinearity requiring correction.
+
+***Are there any problem variables?***
+
+Some argue that a VIF of 3 is a threshold. Therefore, the Examination variable could be problematic 
+
+```{r}
+data(swiss)
+swiss
+
+fit_lm3 <- lm(Fertility ~ Agriculture + Examination + Education + Catholic + Infant.Mortality, data = swiss)
+
+olsrr::ols_vif_tol(fit_lm3)
+
+```
+
+13. Use `MASS::mvrnorm()` to simulate 100 observations of two predictor variables (x and z) with a given correlation. Simulate a response variable y = b0 + b1x + b2z. Test how the uncertainty in the coefficients changes with the correlation (and hence vif) of the predictor variables.
+
+We simulate from a Multivariate Normal Distribution 
+
+I made the both variables important, but the model can´t tell it, sometimes it can detect that it is important, and sometimes it cannot.
+
+Very strongly correlated variables can generate problems and the model fails to estimate.
+
+0.99: very strong correlation, model fails to detect it
+
+One would need more data that reduces the correlation - useful!
+
+```{r}
+Sigma <- matrix(c(1,0.99,0.99,1),2,2)
+Sigma
+Sigma1 <- (mvrnorm(n = 100, rep(0, 2), Sigma)) %>% as.data.frame() %>% rename (x = V1, z = V2) %>% mutate( y = x + z + rnorm (100))
+fit.sigma <- lm (y ~ x + z, data = Sigma1)
+tidy (fit.sigma) 
+olsrr::ols_vif_tol(fit.sigma)
+
+```
+
+
